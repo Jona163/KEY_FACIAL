@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deteccion de Puntos Faciales</title>
+</head>
+<body>
+    <h2>Sube una imagen para detectar los puntos faciales</h2>
+    <input type="file" id="imageInput" accept="image/*">
+    <button onclick="uploadImage()">Subir Imagen</button>
+    <p id="result"></p>
+
+    <script>
+        function uploadImage() {
+            const fileInput = document.getElementById('imageInput');
+            const file = fileInput.files[0];
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const result = data.keypoints;
+                document.getElementById('result').textContent = JSON.stringify(result);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
