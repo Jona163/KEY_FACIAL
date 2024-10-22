@@ -1,42 +1,69 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, render_template
+import tensorflow as tf
 from tensorflow.keras.models import load_model
-import numpy as np
 from PIL import Image
-import io
+import numpy as np
+import gdown
+import os
 
 app = Flask(__name__)
 
-# Ruta del modelo
-MODEL_PATH = "/content/drive/MyDrive/Colab Notebooks/EmotionAI.h5"  # Asegúrate de que este sea el archivo .h5
-model = load_model(MODEL_PATH)
+# URL de Google Drive del modelo
+url_modelo = 'https://drive.google.com/uc?id=1Z2nbxLZ04TVfupKLNdKg1LTgJS3C5cuz'
 
-def preprocess_image(image):
-    # Convertir la imagen a escala de grises, cambiar tamaño y normalización
-    image = image.convert("L").resize((96, 96))
-    image = np.array(image)
-    image = image / 255.0  # Normalización
-    image = np.expand_dims(image, axis=-1)
-    return np.expand_dims(image, axis=0)
+# Descargar el modelo desde Google Drive y guardarlo en un archivo local
+def descargar_modelo(url):
+    output = 'EmotionAI.h5'
+    gdown.download(url, output, quiet=False)
+    return tf.keras.models.load_model(output)
 
-@app.route('/')
+# Cargar el modelo al iniciar la aplicación
+modelo = descargar_modelo(url_modelo)
+
+# Ruta para la página principal
+@app.route('/', methods=['GET', 'POST'])
 def index():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return "No se subió ningún archivo"
+
+        file = request.files['file']
+
+        if file.filename == '':
+            return "No se seleccionó ningún archivo"
+
+        # Procesar la imagen
+        if file:
+            image = Image.open(file).convert('L')
+            image = image.resize((96, 96))
+            image_array = np.array(image) / 255.0
+
+            # Preprocesar la imagen
+            image_array = np.expand_dims(image_array, axis=0)
+            image_array = np.expand_dims(image_array, axis=-1)
+            image_array = np.repeat(image_array, 3, axis=-1)  # Convertir a 3 canales
+
+            # Realizar la predicción
+            prediccion = modelo.predict(image_array)
+            emocion = np.argmax(prediccion)
+
+            # Imprimir la predicción y el índice
+            print(f"Predicción: {prediccion}, Índice de emoción: {emocion}, Total de clases: {len(clases_emociones)}")
+
+            # Emociones (ajusta según tu dataset)
+            clases_emociones = ['Feliz', 'Triste', 'Enojado', 'Sorprendido', 'Neutral']
+            
+            # Verificar que el índice de emoción sea válido
+            if emocion < len(clases_emociones):
+                emocion_predicha = clases_emociones[emocion]
+            else:
+                emocion_predicha = "Emoción desconocida"
+
+            # Mostrar el resultado
+            return render_template('index.html', emocion=emocion_predicha)
+
     return render_template('index.html')
 
-@app.route('/upload', methods=['POST'])
-def upload_image():
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image uploaded'}), 400
-    
-    # Procesar la imagen subida
-    file = request.files['image']
-    img = Image.open(io.BytesIO(file.read()))
-    preprocessed_image = preprocess_image(img)
-    
-    # Hacer predicción con el modelo
-    preds = model.predict(preprocessed_image)[0]
-    
-    # Devolver las coordenadas de los puntos faciales
-    return jsonify({'keypoints': preds.tolist()})
-
+# Ejecutar la aplicación
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
