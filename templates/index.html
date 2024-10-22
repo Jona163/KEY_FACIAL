@@ -3,7 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deteccion de Puntos Faciales</title>
+    <title>Detección de Puntos Faciales</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #333;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 2px solid #007BFF;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            h2 {
+                font-size: 20px;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
     <h2>Sube una imagen para detectar los puntos faciales</h2>
@@ -16,6 +82,11 @@
             const fileInput = document.getElementById('imageInput');
             const file = fileInput.files[0];
 
+            if (!file) {
+                alert('Por favor selecciona una imagen.');
+                return;
+            }
+
             const formData = new FormData();
             formData.append('image', file);
 
@@ -26,10 +97,11 @@
             .then(response => response.json())
             .then(data => {
                 const result = data.keypoints;
-                document.getElementById('result').textContent = JSON.stringify(result);
+                document.getElementById('result').textContent = JSON.stringify(result, null, 2);
             })
             .catch(error => {
                 console.error('Error:', error);
+                document.getElementById('result').textContent = 'Ocurrió un error. Inténtalo de nuevo.';
             });
         }
     </script>
