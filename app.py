@@ -66,4 +66,5 @@ def upload():
         return render_template('index.html', original_image=f'/{original_image_path}', processed_image=f'/{processed_image_path}')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Usa el puerto de Heroku o 5000 por defecto
+    app.run(host='0.0.0.0', port=port)
