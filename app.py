@@ -1,69 +1,69 @@
 from flask import Flask, request, render_template
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-from PIL import Image
 import numpy as np
-import gdown
+import matplotlib.pyplot as plt
+import cv2
+import dlib
 import os
 
 app = Flask(__name__)
 
-# URL de Google Drive del modelo
-url_modelo = 'https://drive.google.com/uc?id=1Z2nbxLZ04TVfupKLNdKg1LTgJS3C5cuz'
+# Ruta donde se guardarán las imágenes procesadas
+OUTPUT_FOLDER = 'static'
+PREDICTOR_PATH = 'shape_predictor_68_face_landmarks.dat'  # Ruta al predictor de dlib
 
-# Descargar el modelo desde Google Drive y guardarlo en un archivo local
-def descargar_modelo(url):
-    output = 'EmotionAI.h5'
-    gdown.download(url, output, quiet=False)
-    return tf.keras.models.load_model(output)
+# Verificar si la carpeta de salida existe, si no, crearla
+if not os.path.exists(OUTPUT_FOLDER):
+    os.makedirs(OUTPUT_FOLDER)
 
-# Cargar el modelo al iniciar la aplicación
-modelo = descargar_modelo(url_modelo)
+# Cargar el detector de caras y el predictor de puntos faciales
+detector = dlib.get_frontal_face_detector()
+predictor = dlib.shape_predictor(PREDICTOR_PATH)
 
-# Ruta para la página principal
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
-    if request.method == 'POST':
-        if 'file' not in request.files:
-            return "No se subió ningún archivo"
-
-        file = request.files['file']
-
-        if file.filename == '':
-            return "No se seleccionó ningún archivo"
-
-        # Procesar la imagen
-        if file:
-            image = Image.open(file).convert('L')
-            image = image.resize((96, 96))
-            image_array = np.array(image) / 255.0
-
-            # Preprocesar la imagen
-            image_array = np.expand_dims(image_array, axis=0)
-            image_array = np.expand_dims(image_array, axis=-1)
-            image_array = np.repeat(image_array, 3, axis=-1)  # Convertir a 3 canales
-
-            # Realizar la predicción
-            prediccion = modelo.predict(image_array)
-            emocion = np.argmax(prediccion)
-
-            # Imprimir la predicción y el índice
-            print(f"Predicción: {prediccion}, Índice de emoción: {emocion}, Total de clases: {len(clases_emociones)}")
-
-            # Emociones (ajusta según tu dataset)
-            clases_emociones = ['Feliz', 'Triste', 'Enojado', 'Sorprendido', 'Neutral']
-            
-            # Verificar que el índice de emoción sea válido
-            if emocion < len(clases_emociones):
-                emocion_predicha = clases_emociones[emocion]
-            else:
-                emocion_predicha = "Emoción desconocida"
-
-            # Mostrar el resultado
-            return render_template('index.html', emocion=emocion_predicha)
-
     return render_template('index.html')
 
-# Ejecutar la aplicación
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'image' not in request.files:
+        return 'No file part'
+    file = request.files['image']
+    if file.filename == '':
+        return 'No selected file'
+    if file:
+        # Guardar el archivo subido
+        original_image_path = os.path.join(OUTPUT_FOLDER, file.filename)
+        file.save(original_image_path)
+
+        # Procesar la imagen
+        image = cv2.imread(original_image_path)
+
+        # Detección de rostros
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        faces = detector(gray_image)
+        print(f"Número de rostros detectados: {len(faces)}")  # Verificar rostros detectados
+
+        for face in faces:
+            # Predecir puntos faciales
+            landmarks = predictor(gray_image, face)
+            print(f"Puntos faciales detectados: {landmarks.num_parts}")  # Verificar puntos detectados
+
+            # Dibujar puntos faciales para ojos y boca en la imagen original
+            for n in range(36, 48):  # Puntos de los ojos (36-47)
+                x = landmarks.part(n).x
+                y = landmarks.part(n).y
+                cv2.circle(image, (x, y), 5, (0, 255, 0), -1)  # Puntos verdes para los ojos
+            for n in range(48, 68):  # Puntos de la boca (48-67)
+                x = landmarks.part(n).x
+                y = landmarks.part(n).y
+                cv2.circle(image, (x, y), 5, (255, 0, 0), -1)  # Puntos rojos para la boca
+
+        # Guardar la imagen con los puntos faciales marcados
+        processed_image_path = os.path.join(OUTPUT_FOLDER, 'result.png')
+        cv2.imwrite(processed_image_path, image)
+
+        # Renderizar la plantilla con las imágenes
+        return render_template('index.html', original_image=f'/{original_image_path}', processed_image=f'/{processed_image_path}')
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True)
