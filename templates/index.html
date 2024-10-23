@@ -3,107 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detección de Puntos Faciales</title>
+    <title>EmotionAI - Ingresa Imagen</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f4f9;
+            font-family: Arial, sans-serif;
+            background-color: #001f3f; /* Azul marino */
+            color: #ffffff; /* Blanco */
+            text-align: center;
             margin: 0;
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            color: #333;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
         }
 
         h2 {
-            color: #333;
-            font-size: 24px;
-            margin-bottom: 20px;
+            font-size: 2em;
+            margin-top: 40px;
         }
 
-        input[type="file"] {
+        form {
+            margin: 20px 0;
+        }
+
+        input[type="file"],
+        input[type="submit"] {
             padding: 10px;
-            border: 2px solid #007BFF;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 300px;
-        }
-
-        button {
-            background-color: #007BFF;
-            color: white;
-            padding: 10px 20px;
+            margin: 10px 0;
             border: none;
             border-radius: 5px;
+            background-color: #007bff; /* Color azul para el botón */
+            color: white;
             cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s;
         }
 
-        button:hover {
-            background-color: #0056b3;
+        input[type="submit"]:hover {
+            background-color: #0056b3; /* Color azul más oscuro al pasar el mouse */
         }
 
-        #result {
-            margin-top: 20px;
-            font-size: 18px;
-            background-color: #e9ecef;
-            padding: 10px;
-            border-radius: 5px;
-            width: 100%;
-            max-width: 300px;
-            text-align: center;
+        img {
+            max-width: 90%; /* Ajustar el tamaño de las imágenes */
+            height: auto; /* Mantener proporciones */
+            border: 2px solid #ffffff; /* Bordes blancos */
+            border-radius: 10px; /* Bordes redondeados */
+            margin: 10px 0;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra sutil */
         }
 
-        @media (max-width: 600px) {
-            h2 {
-                font-size: 20px;
-            }
+        .container {
+            max-width: 800px; /* Limitar el ancho del contenido */
+            margin: 0 auto; /* Centrar en la página */
+            padding: 20px;
+            background-color: #003366; /* Fondo gris oscuro */
+            border-radius: 10px; /* Bordes redondeados */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6); /* Sombra del contenedor */
+        }
 
-            button {
-                width: 100%;
-            }
+        footer {
+            margin-top: 40px;
+            font-size: 0.8em;
+            color: #aaaaaa; /* Color gris para el pie de página */
         }
     </style>
 </head>
 <body>
-    <h2>Sube una imagen para detectar los puntos faciales</h2>
-    <input type="file" id="imageInput" accept="image/*">
-    <button onclick="uploadImage()">Subir Imagen</button>
-    <p id="result"></p>
+    <div class="container">
+        <h1>EmotionAI - Ingresa imagen</h1>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required>
+            <input type="submit" value="Upload">
+        </form>
 
-    <script>
-        function uploadImage() {
-            const fileInput = document.getElementById('imageInput');
-            const file = fileInput.files[0];
+        {% if original_image %}
+            <h2>IMAGEN ORIGINAL</h2>
+            <img src="{{ original_image }}" alt="Original Image">
+        {% endif %}
 
-            if (!file) {
-                alert('Por favor selecciona una imagen.');
-                return;
-            }
+        {% if processed_image %}
+            <h2>IMAGEN PROCESADA</h2>
+            <img src="{{ processed_image }}" alt="Processed Image">
+        {% endif %}
+    </div>
 
-            const formData = new FormData();
-            formData.append('image', file);
-
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                const result = data.keypoints;
-                document.getElementById('result').textContent = JSON.stringify(result, null, 2);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('result').textContent = 'Ocurrió un error. Inténtalo de nuevo.';
-            });
-        }
-    </script>
+    <footer>
+        &copy; Jona163.
+    </footer>
 </body>
 </html>
